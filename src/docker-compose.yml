@@ -1,0 +1,59 @@
+# Agora que você já afiou o seu conhecimento sobre criação de imagens Docker, 
+# tá na hora de fazer o deploy de aplicações 100% em containers Docker. 
+# Então, você vai fazer o deploy da aplicação Rotten-Potatoes (https://github.com/KubeDev/rotten-potatoes), 
+# que é escrita em Python e utiliza um banco de dados MongoDB. 
+# Não esquece também de adicionar a interface de administração do banco relacionado.
+# Faça o fork do projeto e depois coloca no campo abaixo o seu repositório com a solução.
+version: '3.8'
+
+volumes:
+  mongo_vol:
+
+networks:
+  mongo_net:
+    driver: bridge
+
+services:
+  mongo-express:
+    image: mongo-express:1.0.0
+    restart: always
+    ports:
+      - 8081:8081
+    networks:
+      - mongo_net
+    depends_on:
+      - mongodb
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: ${MONGO_USER}
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PWD}
+      ME_CONFIG_MONGODB_URL: mongodb://${MONGO_USER}:${MONGO_PWD}@mongodb:27017/      
+
+  mongodb:
+    image: mongo:7.0
+    restart: always    
+    ports:
+      - 27017:27017
+    networks:
+      - mongo_net
+    volumes:
+      - mongo_vol:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PWD}
+
+  rotten-potatoes:
+    build:
+      dockerfile: ./Dockerfile
+      context: ./
+    ports:
+      - 8080:5000
+    networks:
+      - mongo_net
+    depends_on:
+      - mongodb
+    environment:
+      MONGODB_DB: admin
+      MONGODB_HOST: mongodb
+      MONGODB_PORT: 27017
+      MONGODB_USERNAME: ${MONGO_USER}
+      MONGODB_PASSWORD: ${MONGO_PWD}
